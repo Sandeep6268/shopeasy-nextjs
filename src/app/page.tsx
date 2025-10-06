@@ -1,42 +1,37 @@
-// app/page.tsx - FULLY UPDATED & PRODUCTION READY
+// app/page.tsx - PRODUCTION OPTIMIZED
 import Link from 'next/link';
 import ProductCard from '@/components/products/ProductCard';
 
 async function getFeaturedProducts() {
   try {
-    // PRODUCTION FIX: Always use relative URLs
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? ''  // Empty string for same origin in production
-      : 'http://localhost:3000'; // Localhost for development
-    
-    const apiUrl = `${baseUrl}/api/products?limit=4`;
-    console.log('🔄 Fetching featured products from:', apiUrl);
+    // PRODUCTION: Use environment variable for API URL
+    const baseUrl = process.env.APP_URL || 'https://yourapp.com';
+    const apiUrl = `${baseUrl}/api/products?featured=true&limit=4`;
     
     const response = await fetch(apiUrl, {
-      cache: 'no-store',
+      cache: 'no-store', // Ensure fresh data
       headers: {
         'Content-Type': 'application/json',
       },
+      // Add timeout for production
+      next: { revalidate: 3600 } // Revalidate every hour
     });
 
     if (!response.ok) {
-      console.error('❌ API response not OK:', response.status, response.statusText);
+      console.error('Failed to fetch products:', response.status);
       return [];
     }
 
     const data = await response.json();
-    console.log('✅ Products fetched successfully:', data.products?.length || 0);
-    return data.products?.slice(0, 4) || [];
-  } catch (error: any) {
-    console.error('💥 Error fetching featured products:', error.message);
+    return data.products || [];
+  } catch (error) {
+    console.error('Error fetching featured products:', error);
     return [];
   }
 }
 
 export default async function Home() {
   const featuredProducts = await getFeaturedProducts();
-  
-  console.log('🏠 Homepage rendering with products:', featuredProducts.length);
 
   return (
     <div className="min-h-screen">
@@ -71,76 +66,30 @@ export default async function Home() {
           </p>
         </div>
 
-        {/* Debug Info */}
-        <div className="text-center mb-6">
-          <div className="inline-block bg-gray-100 px-4 py-2 rounded-lg">
-            <p className="text-sm text-gray-600">
-              <span className="font-semibold">{featuredProducts.length}</span> products loaded | 
-              Environment: <span className="font-semibold">{process.env.NODE_ENV}</span>
-            </p>
-          </div>
-        </div>
-
         {/* Products Grid */}
         {featuredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product: any) => (
-              <ProductCard 
-                key={product._id || product.id} 
-                product={product} 
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
-              <svg className="w-12 h-12 text-yellow-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              <h3 className="text-lg font-semibold text-yellow-800 mb-2">No Products Available</h3>
-              <p className="text-yellow-700 text-sm mb-4">
-                Products are not loading. This could be due to:
-              </p>
-              <ul className="text-yellow-600 text-sm text-left list-disc list-inside space-y-1 mb-4">
-                <li>Database connection issue</li>
-                <li>No active products in database</li>
-                <li>API endpoint not working</li>
-              </ul>
-              <div className="space-x-4">
-                <Link
-                  href="/admin/products"
-                  className="inline-block bg-yellow-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-yellow-700"
-                >
-                  Add Products (Admin)
-                </Link>
-                <Link
-                  href="/products"
-                  className="inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700"
-                >
-                  View All Products
-                </Link>
-                <a
-                  href="/api/products?limit=4"
-                  target="_blank"
-                  className="inline-block bg-green-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-700"
-                >
-                  Test API
-                </a>
-              </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product: any) => (
+                <ProductCard 
+                  key={product._id || product.id} 
+                  product={product} 
+                />
+              ))}
             </div>
-          </div>
-        )}
-
-        {/* View All Button */}
-        {featuredProducts.length > 0 && (
-          <div className="text-center mt-12">
-            <Link
-              href="/products"
-              className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300"
-            >
-              View All Products ({featuredProducts.length}+)
-            </Link>
-          </div>
+            
+            {/* View All Button */}
+            <div className="text-center mt-12">
+              <Link
+                href="/products"
+                className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300"
+              >
+                View All Products
+              </Link>
+            </div>
+          </>
+        ) : (
+          <EmptyProductsState />
         )}
       </section>
 
@@ -189,32 +138,37 @@ export default async function Home() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
 
-      {/* Support Section */}
-      {/* <section className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Need Help?
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Our support team is here to help you with any questions
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/contact"
-              className="inline-block bg-gray-800 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-900 transition duration-300"
-            >
-              Contact Support
-            </Link>
-            <Link
-              href="/faq"
-              className="inline-block border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition duration-300"
-            >
-              View FAQ
-            </Link>
-          </div>
+// Empty state component
+function EmptyProductsState() {
+  return (
+    <div className="text-center py-12">
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 max-w-md mx-auto">
+        <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Products Available</h3>
+        <p className="text-gray-600 text-sm mb-6">
+          We're currently updating our inventory. Please check back soon.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            href="/products"
+            className="inline-block bg-blue-600 text-white px-6 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            Browse All Products
+          </Link>
+          <Link
+            href="/contact"
+            className="inline-block border border-gray-300 text-gray-700 px-6 py-2 rounded text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            Contact Support
+          </Link>
         </div>
-      </section> */}
+      </div>
     </div>
   );
 }
