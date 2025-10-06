@@ -1,4 +1,7 @@
-// app/products/[id]/page.tsx - PRODUCTION OPTIMIZED
+// app/products/[id]/page.tsx - PRODUCTION OPTIMIZED WITH REAL-TIME RATINGS
+'use client';
+
+import { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import ProductImages from '@/components/products/ProductImages';
 import AddToCart from '@/components/products/AddToCart';
@@ -12,10 +15,9 @@ interface ProductPageProps {
 
 async function getProduct(id: string) {
   try {
-    const baseUrl = process.env.APP_URL || 'https://yourapp.com';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/products/${id}`, {
-      cache: 'no-store',
-      next: { revalidate: 3600 } // Revalidate every hour
+      cache: 'no-store'
     });
 
     if (!response.ok) {
@@ -33,8 +35,59 @@ async function getProduct(id: string) {
   }
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
-  const product = await getProduct(params.id);
+export default function ProductPage({ params }: ProductPageProps) {
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProduct();
+    
+    // Listen for review submissions to update rating in real-time
+    const handleReviewSubmitted = (event: CustomEvent) => {
+      if (event.detail.productId === params.id) {
+        // Update product with new rating data
+        setProduct((prev: any) => ({
+          ...prev,
+          rating: event.detail.newRating,
+          reviewCount: event.detail.newReviewCount
+        }));
+        
+        // Trigger sync to update database
+        syncProductRatings();
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('reviewSubmitted', handleReviewSubmitted as EventListener);
+    
+    return () => {
+      window.removeEventListener('reviewSubmitted', handleReviewSubmitted as EventListener);
+    };
+  }, [params.id]);
+
+  const loadProduct = async () => {
+    const productData = await getProduct(params.id);
+    if (!productData) {
+      notFound();
+    }
+    setProduct(productData);
+    setLoading(false);
+  };
+
+  const syncProductRatings = async () => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      await fetch(`${baseUrl}/api/sync-ratings`, {
+        method: 'GET'
+      });
+    } catch (error) {
+      console.error('Error syncing ratings:', error);
+    }
+  };
+
+  if (loading) {
+    return <ProductLoadingSkeleton />;
+  }
 
   if (!product) {
     notFound();
@@ -177,7 +230,41 @@ export default async function ProductPage({ params }: ProductPageProps) {
           productName={product.name}
           initialRating={product.rating}
           initialReviewCount={product.reviewCount}
+          onReviewSubmitted={(newRating, newReviewCount) => {
+            // Update local state immediately
+            setProduct((prev: any) => ({
+              ...prev,
+              rating: newRating,
+              reviewCount: newReviewCount
+            }));
+            
+            // Trigger sync to update database
+            syncProductRatings();
+          }}
         />
+      </div>
+    </div>
+  );
+}
+
+// Loading Skeleton Component
+function ProductLoadingSkeleton() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="animate-pulse">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="h-96 bg-gray-200 rounded-lg"></div>
+          <div className="space-y-6">
+            <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-12 bg-gray-200 rounded w-1/4"></div>
+            <div className="space-y-3">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
