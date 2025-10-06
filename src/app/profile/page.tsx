@@ -1,4 +1,4 @@
-// app/profile/page.tsx - FULLY UPDATED & ERROR FIXED
+// app/profile/page.tsx - FIXED WITH BETTER ERROR HANDLING
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,17 +39,37 @@ export default function ProfilePage() {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
-        const data = await response.json();
+      console.log('🔄 Fetching user profile...');
+      const response = await fetch('/api/user/profile');
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Profile fetch failed:', response.status, errorText);
+        
+        let errorMessage = 'Failed to load profile data';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If not JSON, use the text directly
+          errorMessage = errorText || errorMessage;
+        }
+        
+        toast.error(errorMessage);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('✅ Profile data received:', data);
+      
+      if (data.success && data.user) {
         setProfileData(data.user);
       } else {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to load profile' }));
-        toast.error(errorData.error || 'Failed to load profile data');
+        toast.error(data.error || 'Invalid profile data received');
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      toast.error('Failed to load profile data');
+      console.error('💥 Error fetching profile:', error);
+      toast.error('Network error: Failed to load profile data');
     }
   };
 
@@ -64,6 +84,7 @@ export default function ProfilePage() {
     // Check if name actually changed
     if (formData.name === user?.name) {
       setIsEditing(false);
+      toast.success('No changes detected');
       return;
     }
 
@@ -71,8 +92,9 @@ export default function ProfilePage() {
     const updateToast = toast.loading('Updating profile...');
 
     try {
-      // Use direct API call instead of context method to avoid issues
-      const response = await fetch('/api/auth/me', {
+      console.log('🔄 Updating profile with:', { name: formData.name.trim() });
+      
+      const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -80,9 +102,28 @@ export default function ProfilePage() {
         body: JSON.stringify({ name: formData.name.trim() }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      // Check if response is OK first
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Update failed:', response.status, errorText);
         
+        let errorMessage = 'Failed to update profile';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If not JSON, use the text directly
+          errorMessage = errorText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Now parse the JSON
+      const data = await response.json();
+      console.log('✅ Update response:', data);
+      
+      if (data.success) {
         // Update both context and local state
         if (updateProfile) {
           await updateProfile({ name: formData.name.trim() });
@@ -92,11 +133,10 @@ export default function ProfilePage() {
         await fetchUserProfile(); // Refresh profile data
         toast.success('Profile updated successfully!', { id: updateToast });
       } else {
-        const errorData = await response.json().catch(() => ({ error: 'Update failed' }));
-        throw new Error(errorData.error || 'Failed to update profile');
+        throw new Error(data.error || 'Update failed');
       }
     } catch (error: any) {
-      console.error('Update profile error:', error);
+      console.error('💥 Update profile error:', error);
       toast.error(error.message || 'Failed to update profile', { id: updateToast });
     } finally {
       setIsUpdating(false);
@@ -124,13 +164,10 @@ export default function ProfilePage() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-8">
-          {/* Header */}
           <div>
             <div className="h-8 bg-gray-300 rounded w-1/4 mb-2"></div>
             <div className="h-4 bg-gray-300 rounded w-1/2"></div>
           </div>
-          
-          {/* Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               <div className="h-64 bg-gray-300 rounded-lg"></div>
@@ -161,7 +198,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content - Profile Information */}
+        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Personal Information Card */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -172,9 +209,6 @@ export default function ProfilePage() {
                   onClick={() => setIsEditing(true)}
                   className="mt-2 sm:mt-0 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
                   Edit Profile
                 </button>
               )}
@@ -196,7 +230,6 @@ export default function ProfilePage() {
                       placeholder="Enter your full name"
                       required
                     />
-                    <p className="text-sm text-gray-500 mt-1">This will be displayed on your profile and orders</p>
                   </div>
                   
                   <div>
@@ -220,17 +253,7 @@ export default function ProfilePage() {
                     disabled={isUpdating}
                     className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                   >
-                    {isUpdating ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Changes'
-                    )}
+                    {isUpdating ? 'Saving...' : 'Save Changes'}
                   </button>
                   
                   <button
@@ -269,67 +292,22 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
-
-          {/* Security Card */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Security</h2>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">Password</h3>
-                <p className="text-gray-600 text-sm">Last changed: Recently</p>
-              </div>
-              <button
-                onClick={() => router.push('/auth/change-password')}
-                className="mt-3 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
-              >
-                Change Password
-              </button>
-            </div>
-          </div>
         </div>
 
-        {/* Sidebar - Quick Actions */}
+        {/* Sidebar */}
         <div className="space-y-6">
           {/* Account Summary Card */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Summary</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                  </div>
-                  <span className="ml-3 text-gray-700">Orders</span>
-                </div>
+                <span className="text-gray-700">Orders</span>
                 <span className="text-lg font-semibold text-gray-900">{profileData?.ordersCount || 0}</span>
               </div>
               
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </div>
-                  <span className="ml-3 text-gray-700">Wishlist</span>
-                </div>
+                <span className="text-gray-700">Wishlist</span>
                 <span className="text-lg font-semibold text-gray-900">{profileData?.wishlistCount || 0}</span>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <span className="ml-3 text-gray-700">Member Since</span>
-                </div>
-                <span className="text-sm font-medium text-gray-900 text-right">
-                  {profileData?.createdAt ? formatDate(profileData.createdAt) : 'Recently'}
-                </span>
               </div>
             </div>
           </div>
@@ -340,48 +318,18 @@ export default function ProfilePage() {
             <div className="space-y-3">
               <button 
                 onClick={() => router.push('/orders')}
-                className="w-full flex items-center justify-between p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 group"
+                className="w-full flex items-center justify-between p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
               >
                 <span className="font-medium">Order History</span>
-                <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
               </button>
               
               <button 
                 onClick={() => router.push('/wishlist')}
-                className="w-full flex items-center justify-between p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 group"
+                className="w-full flex items-center justify-between p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
               >
                 <span className="font-medium">My Wishlist</span>
-                <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              
-              <button 
-                onClick={() => router.push('/addresses')}
-                className="w-full flex items-center justify-between p-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 group"
-              >
-                <span className="font-medium">Saved Addresses</span>
-                <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
               </button>
             </div>
-          </div>
-
-          {/* Support Card */}
-          <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">Need Help?</h3>
-            <p className="text-blue-700 text-sm mb-4">
-              Our support team is here to help you with any questions.
-            </p>
-            <button 
-              onClick={() => router.push('/contact')}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium"
-            >
-              Contact Support
-            </button>
           </div>
         </div>
       </div>
