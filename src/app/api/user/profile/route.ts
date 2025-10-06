@@ -31,13 +31,13 @@ async function getTokenFromHeaders(): Promise<string | null> {
 export async function GET() {
   try {
     await dbConnect();
-    console.log('🔍 GET /api/user/profile - Connecting to database...');
+    // //console.log('🔍 GET /api/user/profile - Connecting to database...');
 
     const token = await getTokenFromHeaders();
-    console.log('🔍 Token found:', !!token);
+    // //console.log('🔍 Token found:', !!token);
     
     if (!token) {
-      console.log('❌ No token found');
+    //   //console.log('❌ No token found');
       return NextResponse.json(
         { error: 'Authentication required' }, 
         { status: 401 }
@@ -45,10 +45,10 @@ export async function GET() {
     }
 
     const payload = validateAuthToken(token);
-    console.log('🔍 Token payload:', payload);
+    // //console.log('🔍 Token payload:', payload);
     
     if (!payload || !payload.userId) {
-      console.log('❌ Invalid token payload');
+    //   //console.log('❌ Invalid token payload');
       return NextResponse.json(
         { error: 'Invalid authentication token' }, 
         { status: 401 }
@@ -56,7 +56,7 @@ export async function GET() {
     }
 
     const user = await User.findById(payload.userId).select('-password');
-    console.log('🔍 User found:', !!user);
+    // //console.log('🔍 User found:', !!user);
     
     if (!user) {
       return NextResponse.json(
@@ -69,7 +69,7 @@ export async function GET() {
     const ordersCount = await Order.countDocuments({ userId: user._id });
     const wishlistCount = user.wishlist ? user.wishlist.length : 0;
 
-    console.log('✅ Profile data fetched successfully');
+    // //console.log('✅ Profile data fetched successfully');
     
     return NextResponse.json({
       success: true,
@@ -100,7 +100,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     await dbConnect();
-    console.log('🔍 PUT /api/user/profile - Updating profile...');
+    // //console.log('🔍 PUT /api/user/profile - Updating profile...');
 
     const token = await getTokenFromHeaders();
     if (!token) {
@@ -130,7 +130,7 @@ export async function PUT(request: Request) {
     }
 
     const { name } = body;
-    console.log('🔍 Update data:', { name });
+    // //console.log('🔍 Update data:', { name });
 
     // Validate input
     if (!name || name.trim().length === 0) {
@@ -157,7 +157,7 @@ export async function PUT(request: Request) {
     const ordersCount = await Order.countDocuments({ userId: user._id });
     const wishlistCount = user.wishlist ? user.wishlist.length : 0;
 
-    console.log('✅ Profile updated successfully');
+    // //console.log('✅ Profile updated successfully');
 
     return NextResponse.json({
       success: true,

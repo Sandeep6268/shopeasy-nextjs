@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
           bytes: result.bytes
         });
 
-        console.log('Uploaded to Cloudinary:', result.secure_url);
+        // //console.log('Uploaded to Cloudinary:', result.secure_url);
 
       } catch (uploadError) {
         console.error('Cloudinary upload error:', uploadError);

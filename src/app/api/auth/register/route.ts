@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       wishlist: [],
     });
 
-    console.log('✅ [REGISTER] User created with ID:', user._id);
+    // //console.log('✅ [REGISTER] User created with ID:', user._id);
     // await sendWelcomeEmail(user.email, user.name);
 
     // Return success response WITHOUT setting cookie or token

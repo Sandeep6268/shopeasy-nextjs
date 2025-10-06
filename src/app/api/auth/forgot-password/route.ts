@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     
     // Always return success to prevent email enumeration
     if (!user) {
-      console.log('❌ User not found for email:', email);
+    //   //console.log('❌ User not found for email:', email);
       return NextResponse.json({
         message: 'If an account with that email exists, we have sent a password reset link to your email.'
       });
@@ -32,13 +32,13 @@ export async function POST(request: Request) {
     user.resetTokenExpiry = resetTokenExpiry;
     await user.save();
 
-    console.log('📧 Attempting to send email to:', user.email);
+    // //console.log('📧 Attempting to send email to:', user.email);
 
     // Try to send email via Resend
     const emailSent = await sendPasswordResetEmail(user.email, resetToken);
 
     if (emailSent) {
-      console.log('✅ Email sent successfully');
+    //   //console.log('✅ Email sent successfully');
       return NextResponse.json({
         message: 'Password reset link has been sent to your email.'
       });
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       // If email fails, return the reset link for testing
       const resetLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
       
-      console.log('📧 Email service not configured. Reset link:', resetLink);
+    //   //console.log('📧 Email service not configured. Reset link:', resetLink);
       
       return NextResponse.json({
         message: 'Email service is not configured. Use this reset link:',

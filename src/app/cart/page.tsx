@@ -9,7 +9,7 @@ import { useState } from 'react';
 export default function CartPage() {
   const { cart, removeItem, updateQuantity, clearCart, isLoading } = useCart();
 
-  console.log('Cart page - cart state:', cart);
+  // //console.log('Cart page - cart state:', cart);
 
   if (isLoading) {
     return (

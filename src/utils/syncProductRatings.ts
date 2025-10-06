@@ -21,11 +21,11 @@ export async function syncProductRatings() {
           reviewCount: reviews.length
         });
         
-        console.log(`Updated product ${product.name}: ${averageRating.toFixed(1)} stars, ${reviews.length} reviews`);
+        //console.log(`Updated product ${product.name}: ${averageRating.toFixed(1)} stars, ${reviews.length} reviews`);
       }
     }
     
-    console.log('Product ratings sync completed');
+    //console.log('Product ratings sync completed');
   } catch (error) {
     console.error('Sync error:', error);
   }

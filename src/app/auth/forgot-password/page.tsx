@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
         
         // For testing - show reset link in console
         if (data.resetLink) {
-          console.log('🔗 Reset Link:', data.resetLink);
+        //   //console.log('🔗 Reset Link:', data.resetLink);
         }
       } else {
         toast.error(data.error || 'Failed to send reset instructions', { id: forgotPasswordToast });

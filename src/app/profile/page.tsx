@@ -39,7 +39,7 @@ export default function ProfilePage() {
 
   const fetchUserProfile = async () => {
     try {
-      console.log('🔄 Fetching user profile...');
+      //console.log('🔄 Fetching user profile...');
       const response = await fetch('/api/user/profile');
       
       if (!response.ok) {
@@ -60,7 +60,7 @@ export default function ProfilePage() {
       }
 
       const data = await response.json();
-      console.log('✅ Profile data received:', data);
+      //console.log('✅ Profile data received:', data);
       
       if (data.success && data.user) {
         setProfileData(data.user);
@@ -92,7 +92,7 @@ export default function ProfilePage() {
     const updateToast = toast.loading('Updating profile...');
 
     try {
-      console.log('🔄 Updating profile with:', { name: formData.name.trim() });
+      //console.log('🔄 Updating profile with:', { name: formData.name.trim() });
       
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
@@ -121,7 +121,7 @@ export default function ProfilePage() {
 
       // Now parse the JSON
       const data = await response.json();
-      console.log('✅ Update response:', data);
+      //console.log('✅ Update response:', data);
       
       if (data.success) {
         // Update both context and local state

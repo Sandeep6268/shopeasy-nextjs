@@ -56,7 +56,7 @@ export async function GET(
     const orders = await Order.find({ userId: userId })
       .sort({ createdAt: -1 });
 
-    console.log(`Found ${orders.length} orders for user ${userId}`);
+    // //console.log(`Found ${orders.length} orders for user ${userId}`);
 
     return NextResponse.json({ 
       orders: orders

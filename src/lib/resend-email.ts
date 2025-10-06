@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function sendPasswordResetEmail(email: string, resetToken: string) {
   // Check if API key is set
   if (!process.env.RESEND_API_KEY) {
-    console.log('❌ RESEND_API_KEY not set in environment variables');
+    //console.log('❌ RESEND_API_KEY not set in environment variables');
     return false;
   }
 
@@ -55,7 +55,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
       return false;
     }
 
-    console.log('✅ Email sent successfully via Resend. Email ID:', data?.id);
+    //console.log('✅ Email sent successfully via Resend. Email ID:', data?.id);
     return true;
   } catch (error) {
     console.error('❌ Failed to send email:', error);

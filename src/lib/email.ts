@@ -19,7 +19,7 @@ transporter.verify((error) => {
   if (error) {
     console.error('❌ Email server connection failed:', error);
   } else {
-    console.log('✅ Email server is ready to send messages');
+    //console.log('✅ Email server is ready to send messages');
   }
 });
 
@@ -93,7 +93,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Password reset email sent:', info.messageId);
+    //console.log('✅ Password reset email sent:', info.messageId);
     return true;
   } catch (error) {
     console.error('❌ Failed to send password reset email:', error);
@@ -137,7 +137,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('✅ Welcome email sent to:', email);
+    //console.log('✅ Welcome email sent to:', email);
   } catch (error) {
     console.error('❌ Failed to send welcome email:', error);
   }

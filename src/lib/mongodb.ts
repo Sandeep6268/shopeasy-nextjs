@@ -40,10 +40,10 @@ async function dbConnect(): Promise<typeof mongoose> {
       maxPoolSize: 10, // Connection pool size
     };
 
-    console.log('🔄 Connecting to MongoDB Atlas...');
+    //console.log('🔄 Connecting to MongoDB Atlas...');
     cached.promise = mongoose.connect(MONGODB_URI, opts)
       .then((mongoose) => {
-        console.log('✅ MongoDB Atlas Connected successfully');
+        //console.log('✅ MongoDB Atlas Connected successfully');
         return mongoose;
       })
       .catch((error) => {

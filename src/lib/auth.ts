@@ -12,16 +12,16 @@ export async function createAuthToken(user: {
     name: user.name,
   };
 
-  console.log('🔍 [AUTH] Creating token with payload:', payload);
+  //console.log('🔍 [AUTH] Creating token with payload:', payload);
   
   const token = generateToken(payload);
-  console.log('🔍 [AUTH] Generated token type:', typeof token, 'length:', token.length);
+  //console.log('🔍 [AUTH] Generated token type:', typeof token, 'length:', token.length);
   
   return token;
 }
 
 export function validateAuthToken(token: string): JWTPayload {
-  console.log('🔍 [AUTH] Validating token, type:', typeof token, 'length:', token.length);
+  //console.log('🔍 [AUTH] Validating token, type:', typeof token, 'length:', token.length);
   return verifyToken(token);
 }
 

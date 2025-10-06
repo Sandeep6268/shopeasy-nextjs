@@ -9,7 +9,7 @@ export default function CheckoutSuccessPage() {
 
   useEffect(() => {
     // Track conversion or send confirmation email in a real app
-    console.log('Purchase completed for user:', user?.email);
+    // //console.log('Purchase completed for user:', user?.email);
   }, [user]);
 
   return (
