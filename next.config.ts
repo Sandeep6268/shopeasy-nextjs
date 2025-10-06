@@ -1,15 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Remove experimental.appDir - it's now stable in Next.js 15
   images: {
     domains: ['via.placeholder.com', 'res.cloudinary.com'],
+    unoptimized: true, // Add this line
   },
   typescript: {
-    ignoreBuildErrors: true, // TEMPORARY for build
+    ignoreBuildErrors: true,
   },
   eslint: {
-    ignoreDuringBuilds: true, // TEMPORARY for build
+    ignoreDuringBuilds: true,
   },
+  compress: false, // Important: Disable compression
+  poweredByHeader: false,
 }
 
 module.exports = nextConfig
