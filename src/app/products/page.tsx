@@ -16,8 +16,8 @@ async function getProducts(filters: any = {}) {
   try {
     // Production mein same origin use karein - relative URL
     const baseUrl = process.env.NODE_ENV === 'production' 
-      ? '' 
-      : 'http://localhost:3000';
+      ? 'process.env.APP_URL' 
+      : 'process.env.APP_URL';
     
     const url = new URL('/api/products', baseUrl);
     
