@@ -1,4 +1,4 @@
-// app/profile/page.tsx - UPDATED
+// app/profile/page.tsx - FIXED
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,7 +39,7 @@ export default function ProfilePage() {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/auth/me'); // ✅ Correct endpoint
       if (response.ok) {
         const data = await response.json();
         setProfileData(data.user);
@@ -52,22 +52,6 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-300 rounded w-1/4 mb-4"></div>
-          <div className="h-64 bg-gray-300 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    router.push('/auth/signin');
-    return null;
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -77,7 +61,7 @@ export default function ProfilePage() {
     }
 
     // Check if name actually changed
-    if (formData.name === user.name) {
+    if (formData.name === user?.name) {
       setIsEditing(false);
       return;
     }
@@ -86,10 +70,28 @@ export default function ProfilePage() {
     const updateToast = toast.loading('Updating profile...');
 
     try {
-      await updateProfile({ name: formData.name.trim() });
-      setIsEditing(false);
-      await fetchUserProfile(); // Refresh profile data
-      toast.success('Profile updated successfully!', { id: updateToast });
+      // ✅ Use the correct update endpoint
+      const response = await fetch('/api/auth/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: formData.name.trim() }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update auth context
+        if (updateProfile) {
+          await updateProfile({ name: formData.name.trim() });
+        }
+        setIsEditing(false);
+        await fetchUserProfile(); // Refresh profile data
+        toast.success('Profile updated successfully!', { id: updateToast });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
     } catch (error: any) {
       console.error('Update profile error:', error);
       toast.error(error.message || 'Failed to update profile', { id: updateToast });
