@@ -45,7 +45,7 @@ export default function Footer() {
             <h4 className="text-lg font-semibold mb-4">Customer Service</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/contact" className="text-gray-400 hover:text-white">
+                <Link href="" className="text-gray-400 hover:text-white">
                   Contact Us
                 </Link>
               </li>
