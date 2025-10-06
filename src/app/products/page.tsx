@@ -1,4 +1,4 @@
-// app/products/page.tsx - FULLY UPDATED & PRODUCTION READY
+// app/products/page.tsx - PRODUCTION OPTIMIZED
 import ProductCard from '@/components/products/ProductCard';
 import ProductFilters from '@/components/products/ProductFilters';
 
@@ -14,11 +14,8 @@ interface ProductsPageProps {
 
 async function getProducts(filters: any = {}) {
   try {
-    // PRODUCTION FIX: Always use relative URLs
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? ''  // Empty string for same origin in production
-      : 'http://localhost:3000'; // Localhost for development
-    
+    // PRODUCTION: Use environment variable for API URL
+    const baseUrl = process.env.APP_URL || 'https://yourapp.com';
     const url = new URL('/api/products', baseUrl);
     
     // Add filter parameters to URL
@@ -33,30 +30,21 @@ async function getProducts(filters: any = {}) {
       url.searchParams.set('limit', '12');
     }
 
-    console.log('🔄 Fetching products from:', url.toString());
-
     const response = await fetch(url.toString(), {
       cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
       },
+      next: { revalidate: 3600 } // Revalidate every hour
     });
 
     if (!response.ok) {
-      console.error('❌ Products API error:', response.status, response.statusText);
       throw new Error(`Products API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('✅ Products API success:', {
-      productsCount: data.products?.length || 0,
-      total: data.pagination?.total || 0,
-      filters: data.filters || {}
-    });
-    
     return data;
-  } catch (error: any) {
-    console.error('💥 Error fetching products:', error.message);
+  } catch (error) {
     return { 
       products: [], 
       pagination: { total: 0, page: 1, pages: 0 }, 
@@ -68,13 +56,6 @@ async function getProducts(filters: any = {}) {
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const params = await searchParams;
   const { products, pagination, filters } = await getProducts(params);
-
-  console.log('📦 Products page data:', {
-    productsCount: products.length,
-    params: params,
-    filters: filters,
-    environment: process.env.NODE_ENV
-  });
 
   const getPageTitle = () => {
     if (filters?.category) {
@@ -127,12 +108,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <p className="text-gray-600 text-lg">
                 {getPageDescription()}
               </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Environment: {process.env.NODE_ENV} | API: /api/products
-              </p>
             </div>
             
-            {/* Debug Info */}
+            {/* Results Count */}
             <div className="mt-4 lg:mt-0 lg:ml-4">
               <div className="bg-white border border-gray-200 rounded-lg px-4 py-2">
                 <p className="text-sm text-gray-600">
@@ -209,58 +187,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-                <div className="max-w-md mx-auto">
-                  <svg className="w-24 h-24 text-gray-300 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
-                  
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    No products found
-                  </h3>
-                  
-                  <p className="text-gray-600 mb-6">
-                    {hasActiveFilters() 
-                      ? 'Try adjusting your filters or search terms.' 
-                      : 'No products are currently available. Check back later or contact support.'
-                    }
-                  </p>
-
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    {hasActiveFilters() && (
-                      <a
-                        href="/products"
-                        className="inline-flex items-center justify-center bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-300"
-                      >
-                        Clear Filters
-                      </a>
-                    )}
-                    <a
-                      href="/"
-                      className="inline-flex items-center justify-center border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition duration-300"
-                    >
-                      Return Home
-                    </a>
-                    <a
-                      href="/api/products"
-                      target="_blank"
-                      className="inline-flex items-center justify-center bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition duration-300"
-                    >
-                      Test API
-                    </a>
-                  </div>
-
-                  {/* Admin Help */}
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      <strong>Admin:</strong> Add products from the{' '}
-                      <a href="/admin/products" className="underline hover:text-blue-800">
-                        admin panel
-                      </a>
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <EmptyProductsState hasActiveFilters={hasActiveFilters()} />
             )}
 
             {/* Pagination */}
@@ -280,6 +207,47 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Empty state component
+function EmptyProductsState({ hasActiveFilters }: { hasActiveFilters: boolean }) {
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+      <div className="max-w-md mx-auto">
+        <svg className="w-24 h-24 text-gray-300 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          No products found
+        </h3>
+        
+        <p className="text-gray-600 mb-6">
+          {hasActiveFilters 
+            ? 'Try adjusting your filters or search terms.' 
+            : 'No products are currently available. Check back later.'
+          }
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {hasActiveFilters && (
+            <a
+              href="/products"
+              className="inline-flex items-center justify-center bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-300"
+            >
+              Clear Filters
+            </a>
+          )}
+          <a
+            href="/"
+            className="inline-flex items-center justify-center border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition duration-300"
+          >
+            Return Home
+          </a>
         </div>
       </div>
     </div>
