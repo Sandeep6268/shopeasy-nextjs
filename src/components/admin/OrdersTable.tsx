@@ -126,9 +126,6 @@ export default function OrdersTable({ orders, loading, onStatusUpdate }: OrdersT
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -172,20 +169,7 @@ export default function OrdersTable({ orders, loading, onStatusUpdate }: OrdersT
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button 
-                    onClick={() => handleView(order._id)}
-                    className="text-blue-600 hover:text-blue-900 mr-4 p-1 rounded hover:bg-blue-50"
-                  >
-                    View
-                  </button>
-                  <button 
-                    onClick={() => handleEdit(order._id)}
-                    className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
-                  >
-                    Edit
-                  </button>
-                </td>
+                
               </tr>
             ))}
           </tbody>
