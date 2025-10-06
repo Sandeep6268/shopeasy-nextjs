@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
-import { sendWelcomeEmail } from '@/lib/resend-email';
+// import { sendWelcomeEmail } from '@/lib/resend-email';
 
 export async function POST(request: Request) {
   try {
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     });
 
     console.log('✅ [REGISTER] User created with ID:', user._id);
-    await sendWelcomeEmail(user.email, user.name);
+    // await sendWelcomeEmail(user.email, user.name);
 
     // Return success response WITHOUT setting cookie or token
     return NextResponse.json(

@@ -1,6 +1,7 @@
-// lib/cloudinary.ts
+// lib/cloudinary.ts - CORRECTED VERSION
 import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 
+// Cloudinary configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
