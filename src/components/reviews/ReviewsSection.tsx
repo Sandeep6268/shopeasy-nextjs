@@ -1,4 +1,4 @@
-// components/reviews/ReviewsSection.tsx - Updated with real-time updates
+// components/reviews/ReviewsSection.tsx - UPDATED WITH IMMEDIATE REFRESH
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -96,40 +96,9 @@ export default function ReviewsSection({
         toast.success('Review submitted successfully!');
         setReviewForm({ rating: 0, title: '', comment: '' });
         
-        // ✅ IMMEDIATELY update the UI without waiting for refetch
-        const newReview: Review = {
-          _id: data.review._id,
-          userId: data.review.userId,
-          userName: data.review.userName,
-          rating: data.review.rating,
-          title: data.review.title,
-          comment: data.review.comment,
-          verifiedPurchase: data.review.verifiedPurchase,
-          helpful: 0,
-          notHelpful: 0,
-          createdAt: data.review.createdAt
-        };
-
-        // Add new review to the beginning of the list
-        setReviews(prev => [newReview, ...prev]);
+        // ✅ IMMEDIATE PAGE REFRESH
+        window.location.reload();
         
-        // Update rating and count immediately
-        setAverageRating(data.updatedProduct.rating);
-        setTotalReviews(data.updatedProduct.reviewCount);
-
-        // ✅ Force refresh the product page data
-        // This will update the product rating in the header section
-        if (typeof window !== 'undefined') {
-          // Dispatch a custom event that the product page can listen to
-          window.dispatchEvent(new CustomEvent('reviewSubmitted', {
-            detail: {
-              productId,
-              newRating: data.updatedProduct.rating,
-              newReviewCount: data.updatedProduct.reviewCount
-            }
-          }));
-        }
-
       } else {
         throw new Error(data.error || 'Failed to submit review');
       }
