@@ -1,17 +1,18 @@
-// app/page.tsx - FULLY UPDATED
+// app/page.tsx - FULLY UPDATED & PRODUCTION READY
 import Link from 'next/link';
 import ProductCard from '@/components/products/ProductCard';
 
 async function getFeaturedProducts() {
   try {
-    // Production mein same origin use karein - relative URL
+    // PRODUCTION FIX: Always use relative URLs
     const baseUrl = process.env.NODE_ENV === 'production' 
-      ? '' 
-      : 'https://shopeasy-nextjs.vercel.app'; 
+      ? ''  // Empty string for same origin in production
+      : 'http://localhost:3000'; // Localhost for development
     
-    console.log('🔄 Fetching featured products from:', `${baseUrl}/api/products?limit=4`);
+    const apiUrl = `${baseUrl}/api/products?limit=4`;
+    console.log('🔄 Fetching featured products from:', apiUrl);
     
-    const response = await fetch(`${baseUrl}/api/products?limit=4`, {
+    const response = await fetch(apiUrl, {
       cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
@@ -74,7 +75,8 @@ export default async function Home() {
         <div className="text-center mb-6">
           <div className="inline-block bg-gray-100 px-4 py-2 rounded-lg">
             <p className="text-sm text-gray-600">
-              <span className="font-semibold">{featuredProducts.length}</span> products loaded
+              <span className="font-semibold">{featuredProducts.length}</span> products loaded | 
+              Environment: <span className="font-semibold">{process.env.NODE_ENV}</span>
             </p>
           </div>
         </div>
@@ -117,6 +119,13 @@ export default async function Home() {
                 >
                   View All Products
                 </Link>
+                <a
+                  href="/api/products?limit=4"
+                  target="_blank"
+                  className="inline-block bg-green-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-700"
+                >
+                  Test API
+                </a>
               </div>
             </div>
           </div>

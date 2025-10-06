@@ -1,4 +1,4 @@
-// app/products/page.tsx - FULLY UPDATED
+// app/products/page.tsx - FULLY UPDATED & PRODUCTION READY
 import ProductCard from '@/components/products/ProductCard';
 import ProductFilters from '@/components/products/ProductFilters';
 
@@ -14,10 +14,10 @@ interface ProductsPageProps {
 
 async function getProducts(filters: any = {}) {
   try {
-    // Production mein same origin use karein - relative URL
+    // PRODUCTION FIX: Always use relative URLs
     const baseUrl = process.env.NODE_ENV === 'production' 
-      ? '' 
-      : 'http://localhost:3000';
+      ? ''  // Empty string for same origin in production
+      : 'http://localhost:3000'; // Localhost for development
     
     const url = new URL('/api/products', baseUrl);
     
@@ -72,7 +72,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   console.log('📦 Products page data:', {
     productsCount: products.length,
     params: params,
-    filters: filters
+    filters: filters,
+    environment: process.env.NODE_ENV
   });
 
   const getPageTitle = () => {
@@ -125,6 +126,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               </h1>
               <p className="text-gray-600 text-lg">
                 {getPageDescription()}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Environment: {process.env.NODE_ENV} | API: /api/products
               </p>
             </div>
             
@@ -182,7 +186,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                   )}
                 </div>
                 
-                {/* Sort Options (Can be added later) */}
+                {/* Sort Options */}
                 <div className="mt-2 sm:mt-0">
                   <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option>Sort by: Newest</option>
@@ -237,6 +241,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                     >
                       Return Home
                     </a>
+                    <a
+                      href="/api/products"
+                      target="_blank"
+                      className="inline-flex items-center justify-center bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition duration-300"
+                    >
+                      Test API
+                    </a>
                   </div>
 
                   {/* Admin Help */}
@@ -252,7 +263,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               </div>
             )}
 
-            {/* Pagination (Can be added later) */}
+            {/* Pagination */}
             {pagination?.pages > 1 && (
               <div className="mt-8 flex justify-center">
                 <div className="flex space-x-2">
