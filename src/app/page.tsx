@@ -5,9 +5,9 @@ import ProductCard from '@/components/products/ProductCard';
 async function getFeaturedProducts() {
   try {
     // Production mein same origin use karein - relative URL
-    const baseUrl = process.env.APP_URL === 'production' 
+    const baseUrl = process.env.NODE_ENV === 'production' 
       ? '' 
-      : 'process.env.APP_URL';
+      : 'https://shopeasy-nextjs.vercel.app';
     
     console.log('🔄 Fetching featured products from:', `${baseUrl}/api/products?limit=4`);
     
