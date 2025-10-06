@@ -164,15 +164,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                   )}
                 </div>
                 
-                {/* Sort Options */}
-                <div className="mt-2 sm:mt-0">
-                  <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option>Sort by: Newest</option>
-                    <option>Price: Low to High</option>
-                    <option>Price: High to Low</option>
-                    <option>Name: A to Z</option>
-                  </select>
-                </div>
               </div>
             </div>
 
