@@ -5,9 +5,9 @@ import ProductCard from '@/components/products/ProductCard';
 async function getFeaturedProducts() {
   try {
     // Production mein same origin use karein - relative URL
-    const baseUrl = process.env.NODE_ENV === 'production' 
+    const baseUrl = process.env.APP_URL === 'production' 
       ? '' 
-      : 'http://localhost:3000';
+      : 'process.env.APP_URL';
     
     console.log('🔄 Fetching featured products from:', `${baseUrl}/api/products?limit=4`);
     
