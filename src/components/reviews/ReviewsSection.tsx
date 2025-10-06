@@ -1,4 +1,4 @@
-// components/reviews/ReviewsSection.tsx - UPDATED WITH REAL-TIME SYNC
+// components/reviews/ReviewsSection.tsx - Updated with real-time updates
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -23,15 +23,13 @@ interface ReviewsSectionProps {
   productName: string;
   initialRating?: number;
   initialReviewCount?: number;
-  onReviewSubmitted?: (newRating: number, newReviewCount: number) => void;
 }
 
 export default function ReviewsSection({ 
   productId, 
   productName, 
   initialRating = 0, 
-  initialReviewCount = 0,
-  onReviewSubmitted 
+  initialReviewCount = 0 
 }: ReviewsSectionProps) {
   const { user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -116,30 +114,21 @@ export default function ReviewsSection({
         setReviews(prev => [newReview, ...prev]);
         
         // Update rating and count immediately
-        const newRating = data.updatedProduct.rating;
-        const newReviewCount = data.updatedProduct.reviewCount;
-        
-        setAverageRating(newRating);
-        setTotalReviews(newReviewCount);
+        setAverageRating(data.updatedProduct.rating);
+        setTotalReviews(data.updatedProduct.reviewCount);
 
-        // ✅ Call the callback function to update parent component
-        if (onReviewSubmitted) {
-          onReviewSubmitted(newRating, newReviewCount);
-        }
-
-        // ✅ Dispatch custom event for real-time updates across components
+        // ✅ Force refresh the product page data
+        // This will update the product rating in the header section
         if (typeof window !== 'undefined') {
+          // Dispatch a custom event that the product page can listen to
           window.dispatchEvent(new CustomEvent('reviewSubmitted', {
             detail: {
               productId,
-              newRating: newRating,
-              newReviewCount: newReviewCount
+              newRating: data.updatedProduct.rating,
+              newReviewCount: data.updatedProduct.reviewCount
             }
           }));
         }
-
-        // ✅ Trigger database sync for ratings
-        await syncProductRatings();
 
       } else {
         throw new Error(data.error || 'Failed to submit review');
@@ -152,17 +141,6 @@ export default function ReviewsSection({
     }
   };
 
-  const syncProductRatings = async () => {
-    try {
-      // Call the sync API to ensure database is updated
-      await fetch('/api/sync-ratings', {
-        method: 'GET'
-      });
-    } catch (error) {
-      console.error('Error syncing ratings:', error);
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -171,47 +149,11 @@ export default function ReviewsSection({
     });
   };
 
-  const StarRating = ({ rating, size = 'md' }: { rating: number; size?: 'sm' | 'md' | 'lg' }) => {
-    const starSize = {
-      sm: 'w-4 h-4',
-      md: 'w-5 h-5',
-      lg: 'w-6 h-6'
-    };
-
-    return (
-      <div className="flex items-center space-x-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <svg
-            key={star}
-            className={`${starSize[size]} ${
-              star <= Math.floor(rating)
-                ? 'text-yellow-400'
-                : 'text-gray-300'
-            }`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-        ))}
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="animate-pulse">
         <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
         <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
-        <div className="space-y-4">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="border-b pb-4">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-full"></div>
-            </div>
-          ))}
-        </div>
       </div>
     );
   }
@@ -222,23 +164,33 @@ export default function ReviewsSection({
 
       {/* Rating Summary */}
       <div className="bg-gray-50 rounded-lg p-6 mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
+        <div className="flex items-center space-x-4">
           <div className="text-center">
             <div className="text-4xl font-bold text-gray-900">{averageRating.toFixed(1)}</div>
-            <StarRating rating={averageRating} size="lg" />
+            <div className="flex items-center justify-center mt-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <svg
+                  key={star}
+                  className={`w-5 h-5 ${
+                    star <= Math.floor(averageRating)
+                      ? 'text-yellow-400'
+                      : 'text-gray-300'
+                  }`}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+            </div>
             <div className="text-sm text-gray-600 mt-1">
               {totalReviews} review{totalReviews !== 1 ? 's' : ''}
             </div>
           </div>
           <div className="flex-1">
-            <p className="text-gray-600 mb-2">
+            <p className="text-gray-600">
               Share your experience with {productName}
             </p>
-            {!user && (
-              <p className="text-sm text-blue-600">
-                Please login to write a review
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -250,7 +202,7 @@ export default function ReviewsSection({
           <form onSubmit={handleSubmitReview}>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Rating *
+                Your Rating
               </label>
               <div className="flex space-x-1">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -275,125 +227,96 @@ export default function ReviewsSection({
             
             <div className="mb-4">
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Review Title *
+                Review Title
               </label>
               <input
                 type="text"
                 id="title"
                 value={reviewForm.title}
                 onChange={(e) => setReviewForm(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Summarize your experience..."
                 maxLength={100}
-                required
               />
             </div>
             
-            <div className="mb-6">
+            <div className="mb-4">
               <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
-                Your Review *
+                Your Review
               </label>
               <textarea
                 id="comment"
                 rows={4}
                 value={reviewForm.comment}
                 onChange={(e) => setReviewForm(prev => ({ ...prev, comment: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Share your detailed experience with this product..."
                 maxLength={1000}
-                required
               />
               <div className="text-sm text-gray-500 mt-1">
                 {reviewForm.comment.length}/1000 characters
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <button
-                type="submit"
-                disabled={submitting || !reviewForm.rating || !reviewForm.title.trim() || !reviewForm.comment.trim()}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                {submitting ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Submitting...
-                  </span>
-                ) : (
-                  'Submit Review'
-                )}
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setReviewForm({ rating: 0, title: '', comment: '' })}
-                className="px-4 py-3 text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200"
-              >
-                Clear
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={submitting || !reviewForm.rating || !reviewForm.title.trim() || !reviewForm.comment.trim()}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {submitting ? 'Submitting...' : 'Submit Review'}
+            </button>
           </form>
         </div>
       )}
 
       {/* Reviews List */}
-      <div className="space-y-8">
+      <div className="space-y-6">
         {reviews.length > 0 ? (
           reviews.map((review) => (
-            <div key={review._id} className="border-b border-gray-200 pb-8 last:border-0">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">
-                <div className="flex-1">
-                  <h5 className="font-semibold text-gray-900 text-lg mb-2">{review.title}</h5>
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <StarRating rating={review.rating} size="sm" />
+            <div key={review._id} className="border-b pb-6 last:border-0">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h5 className="font-semibold text-gray-900">{review.title}</h5>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <div className="flex items-center space-x-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <svg
+                          key={star}
+                          className={`w-4 h-4 ${
+                            star <= review.rating
+                              ? 'text-yellow-400'
+                              : 'text-gray-300'
+                          }`}
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
                     <span className="text-sm text-gray-600">by {review.userName}</span>
                     {review.verifiedPurchase && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        ✓ Verified Purchase
+                        Verified Purchase
                       </span>
                     )}
                   </div>
                 </div>
-                <span className="text-sm text-gray-500 mt-2 sm:mt-0">
+                <span className="text-sm text-gray-500">
                   {formatDate(review.createdAt)}
                 </span>
               </div>
-              <p className="text-gray-700 leading-relaxed">{review.comment}</p>
-              
-              {/* Helpful Actions */}
-              <div className="flex items-center space-x-4 mt-4 pt-4 border-t border-gray-100">
-                <button className="flex items-center space-x-1 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                  </svg>
-                  <span>Helpful ({review.helpful || 0})</span>
-                </button>
-                <button className="flex items-center space-x-1 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m-7 0h2" />
-                  </svg>
-                  <span>Not Helpful ({review.notHelpful || 0})</span>
-                </button>
-              </div>
+              <p className="text-gray-700 mt-2">{review.comment}</p>
             </div>
           ))
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-8">
             <div className="text-gray-400 mb-4">
-              <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
             </div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">No Reviews Yet</h4>
-            <p className="text-gray-600 mb-6">Be the first to share your thoughts about this product!</p>
-            {!user && (
-              <p className="text-sm text-blue-600">
-                Login to write the first review
-              </p>
-            )}
+            <p className="text-gray-600">No reviews yet. Be the first to review this product!</p>
           </div>
         )}
       </div>
