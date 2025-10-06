@@ -7,7 +7,7 @@ async function getFeaturedProducts() {
     // Production mein same origin use karein - relative URL
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? '' 
-      : 'https://shopeasy-nextjs.vercel.app';
+      : 'https://shopeasy-nextjs.vercel.app'; 
     
     console.log('🔄 Fetching featured products from:', `${baseUrl}/api/products?limit=4`);
     
