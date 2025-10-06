@@ -55,12 +55,12 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link  className="text-gray-400 hover:text-white">
+                <Link href=""  className="text-gray-400 hover:text-white">
                   Returns
                 </Link>
               </li>
               <li>
-                <Link className="text-gray-400 hover:text-white">
+                <Link href="" className="text-gray-400 hover:text-white">
                   FAQ
                 </Link>
               </li>
