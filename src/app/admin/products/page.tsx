@@ -1,9 +1,10 @@
-// app/admin/products/page.tsx - FIXED WIDTH ISSUE
+// app/admin/products/page.tsx - UPDATED WITH DELETE MODAL
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface Product {
   id: string;
@@ -22,6 +23,9 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -41,6 +45,37 @@ export default function AdminProductsPage() {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (productId: string, productName: string) => {
+    setSelectedProduct({ id: productId, name: productName });
+    setModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedProduct) return;
+
+    setDeletingId(selectedProduct.id);
+    setModalOpen(false);
+
+    try {
+      const response = await fetch(`/api/admin/products/${selectedProduct.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove product from local state
+        setProducts(prev => prev.filter(product => product.id !== selectedProduct.id));
+      } else {
+        const data = await response.json();
+        console.error('Failed to delete product:', data.error);
+      }
+    } catch (error) {
+      console.error('Delete product error:', error);
+    } finally {
+      setDeletingId(null);
+      setSelectedProduct(null);
     }
   };
 
@@ -114,7 +149,7 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="lg:ml-64 min-w-0"> {/* Fixed: Added min-w-0 to prevent overflow */}
+      <div className="lg:ml-64 min-w-0">
         <div className="p-4 sm:p-6">
           {/* Desktop Header */}
           <div className="hidden lg:block mb-6">
@@ -126,7 +161,7 @@ export default function AdminProductsPage() {
             {/* Action Bar */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex-1 min-w-0"> {/* Fixed: Added min-w-0 */}
+                <div className="flex-1 min-w-0">
                   <div className="relative max-w-sm">
                     <input
                       type="text"
@@ -140,14 +175,14 @@ export default function AdminProductsPage() {
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-w-0"> {/* Fixed: Added min-w-0 */}
+                  <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-w-0">
                     <option>All Categories</option>
                     <option>Clothing</option>
                     <option>Electronics</option>
                     <option>Home & Garden</option>
                   </select>
                   
-                  <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-w-0"> {/* Fixed: Added min-w-0 */}
+                  <select className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-w-0">
                     <option>All Status</option>
                     <option>Active</option>
                     <option>Draft</option>
@@ -156,7 +191,7 @@ export default function AdminProductsPage() {
                   
                   <Link
                     href="/admin/products/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm text-center flex items-center justify-center whitespace-nowrap" // Fixed: Added whitespace-nowrap
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm text-center flex items-center justify-center whitespace-nowrap"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -211,13 +246,13 @@ export default function AdminProductsPage() {
                           </div>
                           
                           {/* Product Info */}
-                          <div className="flex-1 min-w-0"> {/* Fixed: Added min-w-0 */}
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between">
-                              <div className="min-w-0 flex-1"> {/* Fixed: Added min-w-0 */}
+                              <div className="min-w-0 flex-1">
                                 <h3 className="text-sm font-medium text-gray-900 truncate">
                                   {product.name}
                                 </h3>
-                                <p className="text-sm text-gray-500 capitalize truncate"> {/* Fixed: Added truncate */}
+                                <p className="text-sm text-gray-500 capitalize truncate">
                                   {product.category}
                                 </p>
                                 <p className="text-lg font-semibold text-gray-900 mt-1">
@@ -249,8 +284,12 @@ export default function AdminProductsPage() {
                                 >
                                   Edit
                                 </Link>
-                                <button className="text-red-600 hover:text-red-800 text-sm font-medium">
-                                  Delete
+                                <button 
+                                  onClick={() => handleDeleteClick(product.id, product.name)}
+                                  disabled={deletingId === product.id}
+                                  className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                                >
+                                  {deletingId === product.id ? 'Deleting...' : 'Delete'}
                                 </button>
                               </div>
                             </div>
@@ -263,7 +302,7 @@ export default function AdminProductsPage() {
               </div>
 
               {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-auto"> {/* Fixed: Added overflow-x-auto */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -305,7 +344,7 @@ export default function AdminProductsPage() {
                                 </div>
                               )}
                             </div>
-                            <div className="ml-4 min-w-0"> {/* Fixed: Added min-w-0 */}
+                            <div className="ml-4 min-w-0">
                               <div className="text-sm font-medium text-gray-900 truncate">
                                 {product.name}
                               </div>
@@ -340,8 +379,12 @@ export default function AdminProductsPage() {
                             >
                               Edit
                             </Link>
-                            <button className="text-red-600 hover:text-red-900 whitespace-nowrap">
-                              Delete
+                            <button 
+                              onClick={() => handleDeleteClick(product.id, product.name)}
+                              disabled={deletingId === product.id}
+                              className="text-red-600 hover:text-red-900 whitespace-nowrap disabled:opacity-50"
+                            >
+                              {deletingId === product.id ? 'Deleting...' : 'Delete'}
                             </button>
                           </div>
                         </td>
@@ -372,6 +415,18 @@ export default function AdminProductsPage() {
       <div className="hidden lg:block fixed left-0 top-0 bottom-0">
         <AdminSidebar />
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Product"
+        message={`Are you sure you want to delete "${selectedProduct?.name}"? This action cannot be undone.`}
+        confirmText="Delete Product"
+        cancelText="Cancel"
+        type="delete"
+      />
     </div>
   );
 }
