@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import dbConnect from '@/lib/mongodb';
-import { validateAuthToken } from '@/lib/auth';
 import User from '@/models/User';
-import { products } from '@/data/products';
+import Product from '@/models/Product';
+import jwt from 'jsonwebtoken';
+
+// SIMPLE TOKEN VALIDATION
+function validateToken(token: string) {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    return decoded;
+  } catch (error) {
+    console.error('❌ [TOKEN] Validation failed:', error);
+    return null;
+  }
+}
 
 // Helper function to get token from cookies
 async function getTokenFromHeaders(): Promise<string | null> {
@@ -11,10 +22,7 @@ async function getTokenFromHeaders(): Promise<string | null> {
     const headersList = await headers();
     const cookieHeader = headersList.get('cookie');
     
-    // //console.log('🔍 [WISHLIST] Raw cookie header:', cookieHeader);
-    
     if (!cookieHeader) {
-      // //console.log('❌ [WISHLIST] No cookie header found');
       return null;
     }
     
@@ -24,59 +32,71 @@ async function getTokenFromHeaders(): Promise<string | null> {
       return acc;
     }, {} as Record<string, string>);
     
-    const token = cookies.token || null;
-    // //console.log('🔍 [WISHLIST] Parsed token:', token ? `${token.substring(0, 20)}...` : 'null');
-    
-    return token;
+    return cookies.token || null;
   } catch (error) {
-    console.error('❌ [WISHLIST] Error parsing cookies:', error);
     return null;
   }
 }
 
-// GET - Get user's wishlist
+// GET - Get user's wishlist from MongoDB
 export async function GET() {
-  // //console.log('🚀 [WISHLIST GET] API called');
-  
   try {
     await dbConnect();
-    // //console.log('✅ [WISHLIST GET] Database connected');
 
     const token = await getTokenFromHeaders();
 
     if (!token) {
-      // //console.log('❌ [WISHLIST GET] No token found, returning empty wishlist');
-      return NextResponse.json({ wishlist: [] }, { status: 200 });
+      return NextResponse.json({ wishlist: [] });
     }
 
-    try {
-      // //console.log('🔍 [WISHLIST GET] Validating token...');
-      const payload = validateAuthToken(token);
-      // //console.log('✅ [WISHLIST GET] Token validated, user ID:', payload.userId);
-
-      const user = await User.findById(payload.userId);
-      if (!user) {
-        // //console.log('❌ [WISHLIST GET] User not found in database');
-        return NextResponse.json({ wishlist: [] }, { status: 200 });
-      }
-
-      // //console.log('✅ [WISHLIST GET] User found:', user.email);
-
-      // Ensure wishlist exists and is an array
-      const wishlistProductIds = Array.isArray(user.wishlist) ? user.wishlist : [];
-      // //console.log('🔍 [WISHLIST GET] Wishlist product IDs:', wishlistProductIds);
-
-      const wishlistProducts = products.filter(product => 
-        wishlistProductIds.includes(product.id)
-      );
-
-      // //console.log('✅ [WISHLIST GET] Returning wishlist with', wishlistProducts.length, 'items');
-      return NextResponse.json({ wishlist: wishlistProducts });
-    } catch (tokenError) {
-      console.error('❌ [WISHLIST GET] Token validation failed:', tokenError);
-      return NextResponse.json({ wishlist: [] }, { status: 200 });
+    const payload = validateToken(token);
+    
+    if (!payload) {
+      return NextResponse.json({ wishlist: [] });
     }
-  } catch (error) {
+
+    const user = await User.findById(payload.userId);
+    
+    if (!user) {
+      return NextResponse.json({ wishlist: [] });
+    }
+
+    // Get products from MongoDB based on wishlist IDs
+    const wishlistProductIds = Array.isArray(user.wishlist) ? user.wishlist : [];
+    
+    if (wishlistProductIds.length === 0) {
+      return NextResponse.json({ 
+        wishlist: [],
+        success: true 
+      });
+    }
+    
+    // MongoDB se products fetch karein
+    const wishlistProducts = await Product.find({
+      _id: { $in: wishlistProductIds }
+    }).select('name price images category inventory description featured rating reviewCount comparePrice');
+
+    // Convert MongoDB documents to plain objects with id field
+    const formattedProducts = wishlistProducts.map(product => ({
+      id: product._id.toString(),
+      name: product.name,
+      price: product.price,
+      images: product.images || [],
+      category: product.category,
+      inStock: (product.inventory || 0) > 0,
+      inventory: product.inventory || 0,
+      description: product.description,
+      featured: product.featured || false,
+      rating: product.rating || 0,
+      reviewCount: product.reviewCount || 0,
+      comparePrice: product.comparePrice
+    }));
+
+    return NextResponse.json({ 
+      wishlist: formattedProducts,
+      success: true 
+    });
+  } catch (error: any) {
     console.error('❌ [WISHLIST GET] Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch wishlist' },
@@ -87,72 +107,89 @@ export async function GET() {
 
 // POST - Add to wishlist
 export async function POST(request: Request) {
-  // //console.log('🚀 [WISHLIST ADD] API called');
-  
   try {
     await dbConnect();
-    // //console.log('✅ [WISHLIST ADD] Database connected');
 
     const token = await getTokenFromHeaders();
 
     if (!token) {
-      // //console.log('❌ [WISHLIST ADD] No token found');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const payload = validateAuthToken(token);
-    // //console.log('✅ [WISHLIST ADD] Token validated, user ID:', payload.userId);
+    const payload = validateToken(token);
+    
+    if (!payload) {
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
 
     const { productId } = await request.json();
-    // //console.log('🔍 [WISHLIST ADD] Product ID:', productId);
 
     if (!productId) {
-      // //console.log('❌ [WISHLIST ADD] No product ID provided');
       return NextResponse.json(
         { error: 'Product ID is required' },
         { status: 400 }
       );
     }
 
+    // Find user by ID from token
     const user = await User.findById(payload.userId);
+    
     if (!user) {
-      // //console.log('❌ [WISHLIST ADD] User not found in database');
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    // //console.log('✅ [WISHLIST ADD] User found:', user.email);
-
-    // Initialize wishlist if it doesn't exist
+    // Initialize wishlist if not exists
     if (!user.wishlist) {
-      // //console.log('🔍 [WISHLIST ADD] Initializing empty wishlist');
       user.wishlist = [];
     }
-
-    // //console.log('🔍 [WISHLIST ADD] Current wishlist:', user.wishlist);
 
     // Add product to wishlist if not already there
     if (!user.wishlist.includes(productId)) {
       user.wishlist.push(productId);
       await user.save();
-      // //console.log('✅ [WISHLIST ADD] Product added to wishlist');
-    } else {
-      // //console.log('ℹ️ [WISHLIST ADD] Product already in wishlist');
     }
+
+    // Return updated wishlist with products from MongoDB
+    const wishlistProductIds = Array.isArray(user.wishlist) ? user.wishlist : [];
+    
+    const wishlistProducts = await Product.find({
+      _id: { $in: wishlistProductIds }
+    }).select('name price images category inventory description featured rating reviewCount comparePrice');
+
+    // Convert to proper format
+    const formattedProducts = wishlistProducts.map(product => ({
+      id: product._id.toString(),
+      name: product.name,
+      price: product.price,
+      images: product.images || [],
+      category: product.category,
+      inStock: (product.inventory || 0) > 0,
+      inventory: product.inventory || 0,
+      description: product.description,
+      featured: product.featured || false,
+      rating: product.rating || 0,
+      reviewCount: product.reviewCount || 0,
+      comparePrice: product.comparePrice
+    }));
 
     return NextResponse.json({ 
       message: 'Added to wishlist',
-      wishlist: user.wishlist 
+      wishlist: formattedProducts,
+      success: true
     });
   } catch (error: any) {
-    console.error('❌ [WISHLIST ADD] Error details:', error);
+    console.error('❌ [WISHLIST POST] Error:', error);
     return NextResponse.json(
-      { error: `Internal server error: ${error.message}` },
+      { error: 'Failed to add to wishlist' },
       { status: 500 }
     );
   }
@@ -160,8 +197,6 @@ export async function POST(request: Request) {
 
 // DELETE - Remove from wishlist
 export async function DELETE(request: Request) {
-  // //console.log('🚀 [WISHLIST DELETE] API called');
-  
   try {
     await dbConnect();
 
@@ -174,7 +209,15 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const payload = validateAuthToken(token);
+    const payload = validateToken(token);
+    
+    if (!payload) {
+      return NextResponse.json(
+        { error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
     const { productId } = await request.json();
 
     if (!productId) {
@@ -185,6 +228,7 @@ export async function DELETE(request: Request) {
     }
 
     const user = await User.findById(payload.userId);
+    
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -192,23 +236,43 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Initialize wishlist if it doesn't exist
-    if (!user.wishlist) {
-      user.wishlist = [];
+    // Remove product from wishlist
+    if (user.wishlist && Array.isArray(user.wishlist)) {
+      user.wishlist = user.wishlist.filter(id => id !== productId);
+      await user.save();
     }
 
-    // Remove product from wishlist
-    user.wishlist = user.wishlist.filter((id: string) => id !== productId);
-    await user.save();
+    // Return updated wishlist
+    const wishlistProductIds = Array.isArray(user.wishlist) ? user.wishlist : [];
+    
+    const wishlistProducts = await Product.find({
+      _id: { $in: wishlistProductIds }
+    }).select('name price images category inventory description featured rating reviewCount comparePrice');
+
+    const formattedProducts = wishlistProducts.map(product => ({
+      id: product._id.toString(),
+      name: product.name,
+      price: product.price,
+      images: product.images || [],
+      category: product.category,
+      inStock: (product.inventory || 0) > 0,
+      inventory: product.inventory || 0,
+      description: product.description,
+      featured: product.featured || false,
+      rating: product.rating || 0,
+      reviewCount: product.reviewCount || 0,
+      comparePrice: product.comparePrice
+    }));
 
     return NextResponse.json({ 
       message: 'Removed from wishlist',
-      wishlist: user.wishlist 
+      wishlist: formattedProducts,
+      success: true
     });
   } catch (error: any) {
     console.error('Wishlist remove error:', error);
     return NextResponse.json(
-      { error: `Internal server error: ${error.message}` },
+      { error: 'Failed to remove from wishlist' },
       { status: 500 }
     );
   }

@@ -36,15 +36,13 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response = await fetch('/api/wishlist');
+      
       if (response.ok) {
         const data = await response.json();
         setWishlist(data.wishlist || []);
-      } else {
-        console.error('Failed to load wishlist');
       }
     } catch (error) {
       console.error('Failed to load wishlist:', error);
-      toast.error('Failed to load wishlist');
     } finally {
       setIsLoading(false);
     }
@@ -68,43 +66,47 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
 
       if (response.ok) {
-        setWishlist(prev => [...prev, product]);
+        setWishlist(data.wishlist || []);
         toast.success('Added to wishlist!');
       } else {
-        throw new Error(data.error || 'Failed to add to wishlist');
+        toast.error(data.error || 'Failed to add to wishlist');
       }
     } catch (error: any) {
       console.error('Failed to add to wishlist:', error);
-      toast.error(error.message || 'Failed to add item to wishlist');
+      toast.error('Failed to add item to wishlist');
     }
   };
 
   const removeFromWishlist = async (productId: string) => {
-    if (!user) return;
+  if (!user) return;
 
-    try {
-      const response = await fetch('/api/wishlist', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ productId }),
-      });
+  try {
+    const response = await fetch('/api/wishlist', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ productId }),
+    });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setWishlist(prev => prev.filter(item => item.id !== productId));
-        toast.success('Removed from wishlist!');
-      } else {
-        throw new Error(data.error || 'Failed to remove from wishlist');
-      }
-    } catch (error: any) {
-      console.error('Failed to remove from wishlist:', error);
-      toast.error(error.message || 'Failed to remove item from wishlist');
+    // Check if response is OK before parsing JSON
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
 
+    const data = await response.json();
+
+    if (response.ok) {
+      setWishlist(data.wishlist || []);
+      toast.success('Removed from wishlist!');
+    } else {
+      throw new Error(data.error || 'Failed to remove from wishlist');
+    }
+  } catch (error: any) {
+    console.error('Failed to remove from wishlist:', error);
+    toast.error('Failed to remove item from wishlist');
+  }
+};
   const isInWishlist = (productId: string) => {
     return wishlist.some(item => item.id === productId);
   };

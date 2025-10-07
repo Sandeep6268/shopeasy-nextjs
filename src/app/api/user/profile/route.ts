@@ -8,7 +8,7 @@ import Order from '@/models/Order';
 
 async function getTokenFromHeaders(): Promise<string | null> {
   try {
-    const headersList = headers();
+    const headersList = await headers();
     const cookieHeader = headersList.get('cookie');
     if (!cookieHeader) return null;
     
