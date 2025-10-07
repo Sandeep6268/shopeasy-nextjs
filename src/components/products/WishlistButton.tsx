@@ -72,3 +72,4 @@ export default function WishlistButton({ product, size = 'md' }: WishlistButtonP
     </button>
   );
 }
+
