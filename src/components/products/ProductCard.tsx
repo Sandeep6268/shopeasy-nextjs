@@ -64,9 +64,9 @@ export default function ProductCard({ product }: ProductCardProps) {
         </Link>
         
         {/* Wishlist Button - Top Right Corner */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <WishlistButton product={product} size="sm" />
-        </div>
+          <div className="absolute top-2 right-2 opacity-100 sm:opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 hover:opacity-100">
+            <WishlistButton product={product} size="sm" />
+          </div>
 
         {/* Featured Badge */}
         {product.featured && (
