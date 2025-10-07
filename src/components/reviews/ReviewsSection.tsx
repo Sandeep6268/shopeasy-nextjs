@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
+import ReviewStars from './ReviewStars';
 
 interface Review {
   _id: string;
@@ -169,30 +170,24 @@ export default function ReviewsSection({
         <div className="bg-white border rounded-lg p-6 mb-8">
           <h4 className="text-lg font-semibold text-gray-900 mb-4">Write a Review</h4>
           <form onSubmit={handleSubmitReview}>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Rating
-              </label>
-              <div className="flex space-x-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setReviewForm(prev => ({ ...prev, rating: star }))}
-                    className={`text-2xl focus:outline-none transition-transform hover:scale-110 ${
-                      star <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-300'
-                    }`}
-                  >
-                    ⭐
-                  </button>
-                ))}
-              </div>
-              {reviewForm.rating > 0 && (
-                <p className="text-sm text-gray-600 mt-1">
-                  You selected: {reviewForm.rating} star{reviewForm.rating !== 1 ? 's' : ''}
-                </p>
-              )}
-            </div>
+            // Review Form section - Replace the current stars with this
+        // ReviewsSection.tsx mein stars section replace karein
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Rating
+            </label>
+            <ReviewStars
+              rating={reviewForm.rating}
+              onChange={(newRating) => setReviewForm(prev => ({ ...prev, rating: newRating }))}
+              interactive={true}
+              size="lg"
+            />
+            {reviewForm.rating > 0 && (
+              <p className="text-sm text-gray-600 mt-1">
+                You selected: {reviewForm.rating} star{reviewForm.rating !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
             
             <div className="mb-4">
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">

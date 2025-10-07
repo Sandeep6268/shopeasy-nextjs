@@ -1,4 +1,4 @@
-// components/reviews/ReviewStars.tsx - Clean fixed version
+// components/reviews/ReviewStars.tsx - FIXED VERSION
 'use client';
 
 import { useState } from 'react';
@@ -12,7 +12,7 @@ interface ReviewStarsProps {
 }
 
 export default function ReviewStars({ 
-  rating = 0, // Default to 0
+  rating = 0, // Default to 0 for grey stars
   onChange, 
   interactive = false, 
   size = 'md',
@@ -63,14 +63,10 @@ export default function ReviewStars({
           } focus:outline-none`}
           disabled={!interactive}
         >
-          // Temporary debug version
           <svg
             className={`w-full h-full ${
               star <= displayRating ? 'text-yellow-400' : 'text-gray-300'
             }`}
-            style={{
-              color: star <= displayRating ? '#fbbf24' : '#d1d5db' // Force colors
-            }}
             fill="currentColor"
             viewBox="0 0 20 20"
           >
