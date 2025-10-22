@@ -170,8 +170,6 @@ export default function ReviewsSection({
         <div className="bg-white border rounded-lg p-6 mb-8">
           <h4 className="text-lg font-semibold text-gray-900 mb-4">Write a Review</h4>
           <form onSubmit={handleSubmitReview}>
-            // Review Form section - Replace the current stars with this
-        // ReviewsSection.tsx mein stars section replace karein
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Your Rating
